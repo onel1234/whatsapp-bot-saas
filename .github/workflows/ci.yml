@@ -1,0 +1,39 @@
+name: Phase 1 checks
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: saha
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: saha_dev_admin
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres -d saha" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql://saha_app:saha_dev_app@localhost:5432/saha?schema=public
+      DIRECT_URL: postgresql://postgres:saha_dev_admin@localhost:5432/saha?schema=public
+      WEB_ORIGIN: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Initialize restricted database role
+        run: psql 'postgresql://postgres:saha_dev_admin@localhost:5432/saha' -v ON_ERROR_STOP=1 -f infra/init-db.sql
+      - run: pnpm db:generate
+      - run: pnpm db:migrate
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm build
