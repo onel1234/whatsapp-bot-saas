@@ -57,6 +57,84 @@ model Tenant {
   knowledgeChunks KnowledgeChunk[]
   crawlRuns CrawlRun[]
   tasks BackgroundTask[]
+  botConfig BotConfig?
+  conversations Conversation[]
+  messages ChatMessage[]
+  turns ConversationTurn[]
+  notifications Notification[]
+}
+
+model BotConfig {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @unique @db.Uuid
+  publicId String @unique @default(uuid()) @db.Uuid
+  settings Json
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, id])
+}
+model Conversation {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  tokenHash String @unique
+  origin String
+  preview Boolean @default(false)
+  expiresAt DateTime
+  mode String @default("BOT")
+  language String @default("en")
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+  turns ConversationTurn[]
+  notifications Notification[]
+  @@unique([tenantId, id])
+}
+model ChatMessage {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  conversationId String @db.Uuid
+  clientMessageId String? @db.Uuid
+  turnId String? @unique @db.Uuid
+  sender String
+  body String
+  language String
+  metadata Json @default("{}")
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Cascade)
+  turn ConversationTurn? @relation("Reply", fields: [tenantId, turnId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, turnId])
+  @@unique([tenantId, id])
+  @@unique([tenantId, conversationId, clientMessageId])
+  @@index([tenantId, conversationId, createdAt])
+}
+model ConversationTurn {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  conversationId String @db.Uuid
+  clientMessageId String @db.Uuid
+  text String
+  status String @default("PENDING")
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Cascade)
+  reply ChatMessage? @relation("Reply")
+  @@unique([tenantId, id])
+  @@unique([tenantId, conversationId, clientMessageId])
+  @@index([status, createdAt])
+}
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  conversationId String @db.Uuid
+  reason String
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, conversationId])
 }
 model Membership {
   id String @id @default(uuid()) @db.Uuid

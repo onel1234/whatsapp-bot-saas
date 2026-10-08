@@ -20,6 +20,7 @@ import { PlansModule } from "./plans/plans.module";
 import { HealthController } from "./health.controller";
 import { CatalogModule } from "./catalog/catalog.module";
 import { KnowledgeModule } from "./knowledge/knowledge.module";
+import { ConversationModule } from "./conversations/module";
 @Module({
   imports: [
     DatabaseModule,
@@ -28,6 +29,7 @@ import { KnowledgeModule } from "./knowledge/knowledge.module";
     PlansModule,
     CatalogModule,
     KnowledgeModule,
+    ConversationModule,
   ],
   controllers: [HealthController],
 })
@@ -48,6 +50,13 @@ class SafeErrors implements ExceptionFilter {
   }
 }
 export async function createApp() {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_DEVELOPMENT_LLM !== "true"
+  )
+    throw new Error(
+      "Only the development LLM is implemented. Approve a production provider before launch.",
+    );
   if (!process.env.WEB_ORIGIN)
     throw new Error("WEB_ORIGIN must be configured.");
   if (
@@ -78,6 +87,15 @@ export async function createApp() {
     rateLimit({
       windowMs: 60_000,
       limit: 120,
+      standardHeaders: "draft-7",
+      legacyHeaders: false,
+    }),
+  );
+  app.use(
+    "/widget",
+    rateLimit({
+      windowMs: 60_000,
+      limit: 40,
       standardHeaders: "draft-7",
       legacyHeaders: false,
     }),

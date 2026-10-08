@@ -210,3 +210,103 @@ export type KnowledgeSourceRecord = {
     createdAt: string;
   }[];
 };
+
+export const languageSchema = z.enum([
+  "en",
+  "si",
+  "ta",
+  "singlish",
+  "tanglish",
+]);
+export type Language = z.infer<typeof languageSchema>;
+const originSchema = z
+  .string()
+  .url()
+  .max(300)
+  .refine((v) => {
+    const u = new URL(v);
+    return (
+      ["https:", "http:"].includes(u.protocol) &&
+      u.origin === v &&
+      !u.username &&
+      !u.password
+    );
+  }, "Enter an exact website origin, e.g. https://shop.example.lk (no path).");
+export const botConfigSchema = z
+  .object({
+    businessName: z.string().trim().min(2).max(100),
+    tone: z.enum(["friendly", "formal"]).default("friendly"),
+    enabledLanguages: z
+      .array(languageSchema)
+      .min(1, "Choose at least one customer language.")
+      .max(5)
+      .refine((v) => new Set(v).size === v.length),
+    greeting: z.string().trim().min(1).max(500),
+    rules: z.array(z.string().trim().min(1).max(300)).max(20).default([]),
+    handoffTriggers: z
+      .array(z.string().trim().min(2).max(100))
+      .max(20)
+      .default([]),
+    businessHours: z
+      .array(
+        z
+          .object({
+            day: z.number().int().min(0).max(6),
+            open: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+            close: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          })
+          .strict()
+          .refine(
+            (v) => v.open < v.close,
+            "Closing time must be after opening time.",
+          ),
+      )
+      .max(7)
+      .refine((v) => new Set(v.map((x) => x.day)).size === v.length),
+    widgetEnabled: z.boolean(),
+    allowedOrigins: z.array(originSchema).max(10),
+  })
+  .strict()
+  .refine(
+    (v) => !v.widgetEnabled || v.allowedOrigins.length > 0,
+    "Add a website origin before enabling the widget.",
+  );
+export type BotConfigInput = z.infer<typeof botConfigSchema>;
+export const customerMessageSchema = z
+  .object({
+    clientMessageId: z.string().uuid(),
+    text: z.string().trim().min(1).max(2000),
+  })
+  .strict();
+export type ChatMessage = {
+  id: string;
+  sender: "CUSTOMER" | "BOT";
+  body: string;
+  language: string;
+  createdAt: string;
+  cards?: CatalogCard[];
+  sources?: { title: string; url: string | null }[];
+};
+export type CatalogCard = {
+  id: string;
+  sku: string;
+  name: string;
+  variants: {
+    sku: string;
+    attributes: Record<string, string>;
+    priceMinor: number;
+    stock: number;
+  }[];
+};
+export type ChatSession = {
+  token: string;
+  expiresAt: string;
+  businessName: string;
+  greeting: string;
+  development: true;
+};
+export type ChatState = {
+  mode: "BOT" | "HUMAN";
+  messages: ChatMessage[];
+  pending: boolean;
+};

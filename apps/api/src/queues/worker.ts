@@ -10,8 +10,11 @@ import { SafeFetcher } from "../crawling/safe-fetch";
 import { WebsiteCrawler } from "../crawling/crawler";
 import { TaskProcessor } from "./task-processor";
 import { TaskDispatcher } from "./dispatcher";
+import { ConversationModule } from "../conversations/module";
+import { ConversationEngine } from "../conversations/engine";
+import { startConversationQueue } from "../conversations/queue";
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, ConversationModule],
   providers: [
     DevelopmentEmbeddingProvider,
     SafeFetcher,
@@ -21,6 +24,13 @@ import { TaskDispatcher } from "./dispatcher";
 })
 class WorkerModule {}
 async function main() {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_DEVELOPMENT_LLM !== "true"
+  )
+    throw new Error(
+      "Only the development LLM is implemented. Approve a production provider before launch.",
+    );
   if (!process.env.REDIS_URL)
     throw new Error("REDIS_URL is required for the worker.");
   const app = await NestFactory.createApplicationContext(WorkerModule, {
@@ -42,6 +52,11 @@ async function main() {
     CRAWL: new Queue("saha-crawling", { connection }),
     EMBED: new Queue("saha-embedding", { connection }),
   };
+  const inbound = startConversationQueue(
+    db,
+    app.get(ConversationEngine),
+    connection,
+  );
   const workers = Object.entries(queues).map(
     ([_kind, queue]) =>
       new Worker<{ taskId: string }>(
@@ -72,6 +87,7 @@ async function main() {
     if (stopping) return;
     stopping = true;
     clearInterval(interval);
+    await inbound.close();
     await Promise.all(workers.map((worker) => worker.close()));
     await Promise.all(Object.values(queues).map((queue) => queue.close()));
     await app.close();
