@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Saha · Website chat demo</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f7f8f2;
+        color: #304333;
+        font: 16px/1.8 system-ui;
+      }
+      main {
+        max-width: 700px;
+        margin: 12vh auto;
+        padding: 30px;
+      }
+      small {
+        color: #80916c;
+        letter-spacing: 2px;
+      }
+      h1 {
+        font-size: clamp(36px, 7vw, 62px);
+        line-height: 1.15;
+        font-weight: 500;
+      }
+      p {
+        max-width: 550px;
+      }
+      a {
+        color: #355745;
+      }
+      #status {
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <small>SAHA / WEBSITE CHAT DEMO</small>
+      <h1>A warmer welcome.<br />Right on your website.</h1>
+      <p>
+        This page runs the same embed script you can add to your own site. Open
+        the chat below and try a product question in English, Sinhala, Tamil,
+        Singlish or Tanglish.
+      </p>
+      <p id="status">
+        The local development provider selects tools and reviewed excerpts. Live
+        AI and translation quality are not being tested.
+      </p>
+      <a href="/dashboard">Back to your workspace</a>
+    </main>
+    <script>
+      const id = new URLSearchParams(location.search).get("id");
+      if (id && /^[a-f0-9-]{36}$/i.test(id)) {
+        const embed = document.createElement("script");
+        embed.src = "/widget.js";
+        embed.setAttribute("data-saha-id", id);
+        document.body.append(embed);
+      } else
+        document.getElementById("status").textContent =
+          "Open this demo from Bot settings with your widget ID.";
+    </script>
+  </body>
+</html>

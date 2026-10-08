@@ -26,6 +26,7 @@ import { plans } from "@saha/shared";
 import { api, ApiError } from "../lib/api";
 import CatalogPanel from "./catalog-panel";
 import KnowledgePanel from "./knowledge-panel";
+import BotPanel from "./bot-panel";
 const nav = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Inbox", icon: MessageSquare, phase: 5 },
@@ -52,6 +53,7 @@ export default function Dashboard() {
   async function load() {
     try {
       const user = await api<Viewer>("/auth/me");
+      setError("");
       setViewer(user);
       const saved = localStorage.getItem("saha_workspace");
       setWorkspace(
@@ -169,9 +171,7 @@ export default function Dashboard() {
     );
   const owner = workspace.role === "OWNER";
   const plan = plans[workspace.plan];
-  const later = [...nav, { name: "Bot settings", phase: 3 }].find(
-    (n) => n.name === page && n.phase,
-  );
+  const later = nav.find((n) => n.name === page && n.phase);
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -256,7 +256,7 @@ export default function Dashboard() {
               Let’s build what comes next.
             </p>
             <span>
-              EARLY ACCESS <i>02 / 06</i>
+              EARLY ACCESS <i>03 / 06</i>
             </span>
           </div>
           <button className="help-button" onClick={() => setPage("Help")}>
@@ -418,7 +418,7 @@ export default function Dashboard() {
                   <strong>
                     3 <span className="stat-muted">+ romanized</span>
                   </strong>
-                  <small>Planned for the conversation engine</small>
+                  <small>Available in the development preview</small>
                 </article>
               </section>
               <section className="overview-bottom">
@@ -472,20 +472,20 @@ export default function Dashboard() {
                     <br />A little more connected.
                   </h3>
                   <p>
-                    Your catalog and knowledge are ready. Next comes the
-                    conversation engine and your website chat widget.
+                    Your website chat is ready to try. Set your greeting and
+                    languages, then test a customer conversation.
                   </p>
                   <button
                     className="text-button"
                     onClick={() => setPage("Bot settings")}
                   >
-                    Explore what’s next <ArrowRight size={15} />
+                    Try your assistant <ArrowRight size={15} />
                   </button>
                 </div>
               </section>
               <div className="workspace-footer">
                 <span>
-                  <span className="status-dot" /> Catalog & knowledge ready
+                  <span className="status-dot" /> Website chat ready for review
                 </span>
                 <span>Made for the way you do business.</span>
               </div>
@@ -500,6 +500,13 @@ export default function Dashboard() {
           )}
           {page === "Knowledge" && (
             <KnowledgePanel
+              key={workspace.id}
+              tenantId={workspace.id}
+              owner={owner}
+            />
+          )}
+          {page === "Bot settings" && (
+            <BotPanel
               key={workspace.id}
               tenantId={workspace.id}
               owner={owner}
@@ -685,9 +692,9 @@ export default function Dashboard() {
                 recipients must sign in with the matching email address.
               </p>
               <p>
-                Catalog and knowledge are available now. Next comes the
-                conversation engine, messaging channels, orders and payments,
-                then metering. Each phase has a review checkpoint.
+                Catalog, knowledge and website chat are available now. Next come
+                messaging channels, orders and payments, then metering. Each
+                phase has a review checkpoint.
               </p>
             </section>
           )}

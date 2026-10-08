@@ -1,6 +1,17 @@
-# Phases 1–2 verification
+# Phases 1–3 verification
 
 Updated: 2026-10-08 (Asia/Colombo).
+
+## Phase 3 checks
+
+- Generated Prisma and applied all three migrations to a fresh UTF-8 `saha_phase3_test` PostgreSQL database. Tests used the restricted application role with forced RLS.
+- 63 unit tests passed, including 36 Phase 3 cases: 30 labeled customer messages (six each for English, Sinhala, Tamil, Singlish and Tanglish), ambiguous/mixed-language context, human-request phrases, tool/prompt configuration validation, recent memory and conservative handling of overlapping knowledge policies.
+- 23 PostgreSQL integration tests passed, including nine Phase 3 scenarios for origin/session expiry, transcript isolation, concurrent message replay, exact catalog facts, usage logging, forged tools/cross-tenant IDs, current approved knowledge, human-mode notifications, provider failure, disabled widgets and ten-message memory. Durable inbound receipt processing was tested directly, including replay without duplicate replies.
+- Two Redis-dependent tests (embedding and widget inbound workers) are enabled in CI by `TEST_REDIS_URL` and explicitly skipped locally. Redis and Docker remain unavailable on this machine; hosted CI has not been run. Direct processing and inline widget requests do not establish Redis operation.
+- ESLint, type checks, API compilation and optimized Next.js production build passed.
+- Browser checks with synthetic local data: saved bot settings and Monday hours, previewed a database-backed catalog reply, enabled an origin, and ran the actual embed script/frame handshake. A Tanglish question returned the saved LKR 1,250.50 price and stock 24. A human request produced a localized fallback and appeared in the seller's request list.
+- Visually checked desktop and 390px mobile embedded chat; the frame fit the screen with no document-level horizontal overflow. Idle polling was reduced and non-JSON rate-limit replies produce readable errors. Temporary viewport overrides were cleared.
+- No paid AI provider or translation quality is claimed. The local provider chooses validated tools and reviewed excerpts; it cannot generate unrestricted factual text. No Meta channel, external deployment or payment integration was activated. HUMAN mode persists requests; dashboard replies remain Phase 5.
 
 ## Phase 2 checks
 
@@ -38,7 +49,7 @@ The machine's bundled pnpm is a different major version. Installation and verifi
 - Live Google OAuth without owner-supplied credentials.
 - Docker image execution, hosted CI, or Railway deployment.
 - Local Redis/BullMQ execution, production semantic embeddings or live multilingual answer quality.
-- Features in Phases 3–6: conversation engine/widget, Meta channels, orders/payments, and usage enforcement.
+- Features in Phases 4–6: Meta channels, live inbox/human replies, orders/payments, and usage enforcement.
 
 ## References used during implementation
 

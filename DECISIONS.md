@@ -1,6 +1,6 @@
 # Architecture decisions and open questions
 
-Status: architecture approved on 2026-10-07. The owner authorized Phase 2 on 2026-10-08; catalog and knowledge ingestion are implemented for review.
+Status: architecture approved on 2026-10-07. The owner authorized Phases 2 and 3 on 2026-10-08. Phase 3 engine and widget are implemented and verified for review.
 
 ## Requirements accepted from the brief
 
@@ -29,7 +29,7 @@ Status: architecture approved on 2026-10-07. The owner authorized Phase 2 on 202
 
 These do not block the architecture review unless noted.
 
-- **Approval gate:** architecture and global-identity exception approved on 2026-10-07; Phase 2 authorized on 2026-10-08. Stop for Phase 2 review before the conversation engine and widget in Phase 3.
+- **Approval gate:** architecture and global-identity exception approved on 2026-10-07; Phase 2 authorized on 2026-10-08. Phase 3 is authorized; stop for review before Meta adapters in Phase 4.
 - **Brand:** product name, logo and visual identity; use a neutral working label until chosen.
 - **Plan rules:** exact quotas, enabled channels/features, reset period, and retention by plan. Keep development values explicitly provisional; confirm before enforcing commercial plans. PayHere is Growth-enabled as requested, with Business inheritance proposed.
 - **AI:** approved LLM and embedding providers/models, budget, expected dimensions, data processing requirements. No paid API calls until authorized.
@@ -67,3 +67,15 @@ These do not block the architecture review unless noted.
 - Public HTML crawling honors robots.txt, pins vetted public DNS addresses, rechecks redirects, and caps pages, depth, bytes and time. It does not render JavaScript or extract PDFs.
 - The no-cost development embedding provider uses deterministic 64-dimensional token hashing. It verifies the indexing/retrieval plumbing; it does not establish production semantic or multilingual search quality. A real provider/model and any dimension migration/reindex still require the owner's decision.
 - Redis is unavailable on this machine. Direct processor integration checks passed using real PostgreSQL; the real Redis/BullMQ dispatch/worker test is enabled in CI but skipped locally. Nothing has been deployed.
+
+## Phase 3 implementation notes
+
+- `LlmProvider` exposes constrained tool proposals and usage metadata. The approved local provider selects tools and approved excerpts; it does not call paid APIs, generate unrestricted factual text or translate knowledge. Production provider selection and multilingual answer-quality evaluation remain open.
+- Catalog cards use active tenant-scoped database variants. Tool schemas reject tenant IDs, model-created prices and forged confirmations. Knowledge proposals must reference current retrieved approved chunks; weak, mismatched-language or monetary/stock excerpts fall back to the team.
+- Detection uses Sinhala/Tamil script, conservative romanized vocabulary and recent-language context for ambiguity. Thirty labeled fixtures (six per style), plus ambiguous/mixed cases, verify these heuristics rather than general language quality.
+- Widget credentials are random, hashed at rest, valid for 24 hours and bound to one conversation/origin. The public embed ID cannot retrieve transcripts. Enabled origins and widget status are rechecked. Credentials remain in frame memory, never URLs or browser storage.
+- ConversationTurn is both a committed widget receipt and durable inbound work item. Stable client UUIDs deduplicate retries. Database locks serialize each conversation; reply, usage and completion commit together. Model memory is ten recent messages; transcripts persist in full, with the latest fifty available to widget polling.
+- `WIDGET_PROCESSING_MODE=inline` tests the local engine without Redis after receipt commit. Queue mode uses `saha-inbound` BullMQ and the same engine. Pending receipts survive outages; failed jobs have a recovery cooldown. Redis remains the required queue stack.
+- HUMAN mode and one seller notification persist for requests, missing evidence or provider errors. Bot settings shows notifications; the live inbox and human replies remain Phase 5. Order tool contracts return unavailable and cannot mutate stock or create orders.
+- Business name, tone, languages, greeting, rules, handoff phrases and Asia/Colombo hours assemble a structured prompt; there is no raw prompt editor. The local selector is not a production instruction-following/translation model.
+- Production API startup rejects the local provider unless `ALLOW_DEVELOPMENT_LLM=true` explicitly enables a staging review. No paid service, deployment or Meta activation was performed.

@@ -1,6 +1,6 @@
 # Saha · multilingual customer workspace
 
-Working product name. Phases 1–2 implement the approved [architecture](ARCHITECTURE.md): authentication and tenant isolation, multilingual product catalogs, CSV imports, website knowledge review, Redis/BullMQ workers and pgvector retrieval.
+Working product name. Phases 1–3 implement the approved [architecture](ARCHITECTURE.md): authentication and tenant isolation, catalog and knowledge ingestion, a constrained conversation engine, bot settings and embeddable website chat.
 
 ## Run locally
 
@@ -44,7 +44,7 @@ For an existing PostgreSQL installation, create a separate UTF-8 `saha` database
 - As owner, create/edit products with English, Sinhala and Tamil names, variants, stock, attributes and exact LKR prices. Search the catalog and preview a CSV before importing.
 - Add a public website under Knowledge, wait for crawling, edit the resulting drafts and approve reviewed content. Approving schedules indexing; only approved, successfully indexed revisions appear in the search preview. Manual knowledge entries use the same review flow.
 - Re-crawl a source: changed text becomes a draft while its previously approved version remains available. Duplicate active crawl requests reuse the existing run.
-- Conversations, channels, commerce and metering remain at their upcoming build phases.
+- The live inbox, Meta channels, commerce and metering remain at their upcoming build phases.
 
 ## Catalog imports and knowledge limits
 
@@ -85,8 +85,22 @@ The migration role owns narrowly scoped SECURITY DEFINER invitation and backgrou
 
 ## Phase boundary and known limitations
 
-This is a reviewable Phase 2, not a launched chatbot. Plan limits are provisional; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service is called.
+This is a reviewable Phase 3, not a launched chatbot. Plan limits are provisional; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service is called.
 
-See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review here before implementing the conversation engine and website widget in Phase 3.
+See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review here before implementing Meta adapters in Phase 4.
 
 See [VERIFICATION.md](VERIFICATION.md) for the checks completed in this environment and the integrations that remain unverified.
+
+## Try Phase 3
+
+1. Add a catalog product and open **Bot settings**. Choose your greeting, customer languages, rules, handoff phrases and business hours.
+2. Click **Start preview**. Try `tea price` using your product name, `tea vilai evvalavu`, and `human please`. Catalog prices/stock come from the database. Handoffs appear under **Requests for your team**; start a new conversation to test the bot again.
+3. Add your website's exact origin (scheme + hostname + port, no path) and enable website chat. For the built-in demo, allow the web origin, e.g. `http://localhost:3000`.
+4. Save and open **website demo**, or paste the displayed script into your own page. The embed validates a frame/parent postMessage handshake before bootstrapping a conversation.
+5. To test knowledge, approve/index an entry with `pnpm worker`, then ask a related question. Reviewed excerpts retain their original language; absent evidence or language mismatch triggers a localized handoff.
+
+The example API environment uses `WIDGET_PROCESSING_MODE=inline`, which runs the local engine after durable receipt commit without Redis. Set it to `queue` and run `pnpm worker` to exercise the BullMQ inbound path. Queue mode without a worker truthfully shows a pending reply. Crawling and indexing always require Redis/the worker.
+
+The local LLM selects validated tools and excerpts only. It has no live model, translation service or paid API. Reply metadata records language, channel, model, token estimates and zero development cost; these estimates are not provider billing counts. Order tools are unavailable until Phase 5. HUMAN mode saves requests but dashboard human replies are not implemented yet.
+
+Credentials expire after 24 hours and stay in frame memory. Reload starts a new anonymous conversation. Disabling the widget or removing its origin blocks existing public sessions. Public endpoints are rate-limited per process until Phase 6. Production API startup refuses the development LLM unless `ALLOW_DEVELOPMENT_LLM=true` explicitly enables staging review; choose an approved real provider before launch.
