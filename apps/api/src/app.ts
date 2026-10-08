@@ -18,8 +18,17 @@ import { AuthModule } from "./auth/auth.module";
 import { TenancyModule } from "./tenancy/tenancy.module";
 import { PlansModule } from "./plans/plans.module";
 import { HealthController } from "./health.controller";
+import { CatalogModule } from "./catalog/catalog.module";
+import { KnowledgeModule } from "./knowledge/knowledge.module";
 @Module({
-  imports: [DatabaseModule, AuthModule, TenancyModule, PlansModule],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    TenancyModule,
+    PlansModule,
+    CatalogModule,
+    KnowledgeModule,
+  ],
   controllers: [HealthController],
 })
 class AppModule {}
@@ -48,8 +57,9 @@ export async function createApp() {
     throw new Error("Production WEB_ORIGIN must use HTTPS.");
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ["error", "warn"],
-    bodyParser: true,
+    bodyParser: false,
   });
+  app.useBodyParser("json", { limit: "1mb" });
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({ origin: process.env.WEB_ORIGIN, credentials: true });

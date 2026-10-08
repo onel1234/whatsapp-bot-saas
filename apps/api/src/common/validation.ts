@@ -1,6 +1,9 @@
 import { BadRequestException } from "@nestjs/common";
 import { z } from "zod";
-export const parse = <T>(schema: z.ZodType<T>, input: unknown): T => {
+export const parse = <Schema extends z.ZodTypeAny>(
+  schema: Schema,
+  input: unknown,
+): z.output<Schema> => {
   const result = schema.safeParse(input);
   if (!result.success)
     throw new BadRequestException(

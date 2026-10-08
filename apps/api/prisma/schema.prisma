@@ -50,6 +50,13 @@ model Tenant {
   createdAt DateTime @default(now())
   memberships Membership[]
   invitations Invitation[]
+  products Product[]
+  variants ProductVariant[]
+  knowledgeSources KnowledgeSource[]
+  knowledgeEntries KnowledgeEntry[]
+  knowledgeChunks KnowledgeChunk[]
+  crawlRuns CrawlRun[]
+  tasks BackgroundTask[]
 }
 model Membership {
   id String @id @default(uuid()) @db.Uuid
@@ -73,4 +80,151 @@ model Invitation {
   createdAt DateTime @default(now())
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   @@unique([tenantId, id])
+}
+
+enum ReviewStatus {
+  DRAFT
+  APPROVED
+  CHANGES_PENDING
+}
+enum EmbeddingStatus {
+  NONE
+  PENDING
+  READY
+  FAILED
+}
+enum CrawlStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+enum TaskKind {
+  CRAWL
+  EMBED
+}
+enum TaskStatus {
+  PENDING
+  DISPATCHED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  sku String
+  nameEn String
+  nameSi String @default("")
+  nameTa String @default("")
+  description String @default("")
+  imageUrl String @default("")
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variants ProductVariant[]
+  @@unique([tenantId, id])
+  @@unique([tenantId, sku])
+}
+model ProductVariant {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  productId String @db.Uuid
+  sku String
+  attributes Json @default("{}")
+  priceMinor Int
+  stock Int
+  active Boolean @default(true)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [tenantId, productId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, sku])
+}
+model KnowledgeSource {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  url String
+  pageLimit Int @default(20)
+  depthLimit Int @default(2)
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entries KnowledgeEntry[]
+  runs CrawlRun[]
+  @@unique([tenantId, id])
+  @@unique([tenantId, url])
+}
+model CrawlRun {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  knowledgeSourceId String @db.Uuid
+  status CrawlStatus @default(QUEUED)
+  pageCount Int @default(0)
+  skippedCount Int @default(0)
+  errorCode String?
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  finishedAt DateTime?
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source KnowledgeSource @relation(fields: [tenantId, knowledgeSourceId], references: [tenantId, id], onDelete: Cascade)
+  task BackgroundTask?
+  @@unique([tenantId, id])
+}
+model KnowledgeEntry {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  knowledgeSourceId String? @db.Uuid
+  sourceUrl String?
+  sourceContentHash String?
+  title String
+  draftContent String
+  approvedTitle String?
+  approvedContent String?
+  reviewStatus ReviewStatus @default(DRAFT)
+  version Int @default(1)
+  approvedRevision Int @default(0)
+  embeddingStatus EmbeddingStatus @default(NONE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source KnowledgeSource? @relation(fields: [tenantId, knowledgeSourceId], references: [tenantId, id], onDelete: Cascade)
+  chunks KnowledgeChunk[]
+  tasks BackgroundTask[]
+  @@unique([tenantId, id])
+  @@unique([tenantId, knowledgeSourceId, sourceUrl])
+}
+model KnowledgeChunk {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  knowledgeEntryId String @db.Uuid
+  revision Int
+  ordinal Int
+  content String
+  embeddingModel String
+  embeddingVersion String
+  embedding Unsupported("vector(64)")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entry KnowledgeEntry @relation(fields: [tenantId, knowledgeEntryId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, knowledgeEntryId, revision, ordinal])
+}
+model BackgroundTask {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  kind TaskKind
+  status TaskStatus @default(PENDING)
+  crawlRunId String? @db.Uuid
+  knowledgeEntryId String? @db.Uuid
+  revision Int?
+  attempts Int @default(0)
+  errorCode String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  run CrawlRun? @relation(fields: [tenantId, crawlRunId], references: [tenantId, id], onDelete: Cascade)
+  entry KnowledgeEntry? @relation(fields: [tenantId, knowledgeEntryId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, crawlRunId])
+  @@unique([tenantId, knowledgeEntryId, revision])
+  @@index([status, createdAt])
 }

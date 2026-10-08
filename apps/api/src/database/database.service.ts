@@ -26,29 +26,51 @@ export class Database
   async forUser<T>(
     userId: string,
     work: (tx: Prisma.TransactionClient) => Promise<T>,
+    timeout = 5000,
   ) {
-    return this.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.user_id', ${userId}, true)`;
-      return work(tx);
-    });
+    return this.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.user_id', ${userId}, true)`;
+        return work(tx);
+      },
+      { timeout },
+    );
   }
   async forTenant<T>(
     userId: string,
     tenantId: string,
     owner: boolean,
     work: (tx: Prisma.TransactionClient) => Promise<T>,
+    timeout = 5000,
   ) {
-    return this.forUser(userId, async (tx) => {
-      // Membership is read BEFORE granting transaction-local tenant context.
-      const membership = await tx.membership.findUnique({
-        where: { tenantId_userId: { tenantId, userId } },
-      });
-      if (!membership || (owner && membership.role !== "OWNER"))
-        throw new ForbiddenException(
-          "You do not have access to this workspace.",
-        );
-      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
-      return work(tx);
-    });
+    return this.forUser(
+      userId,
+      async (tx) => {
+        // Membership is read BEFORE granting transaction-local tenant context.
+        const membership = await tx.membership.findUnique({
+          where: { tenantId_userId: { tenantId, userId } },
+        });
+        if (!membership || (owner && membership.role !== "OWNER"))
+          throw new ForbiddenException(
+            "You do not have access to this workspace.",
+          );
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+        return work(tx);
+      },
+      timeout,
+    );
+  }
+  // Worker-only entry point: tenant is resolved from a durable task, never a customer payload.
+  async forWorkerTenant<T>(
+    tenantId: string,
+    work: (tx: Prisma.TransactionClient) => Promise<T>,
+  ) {
+    return this.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+        return work(tx);
+      },
+      { timeout: 15000 },
+    );
   }
 }
