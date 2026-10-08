@@ -1,6 +1,6 @@
 # Architecture decisions and open questions
 
-Status: architecture approved by the owner on 2026-10-07; Phase 1 implemented and ready for review. Phase 2 has not started.
+Status: architecture approved on 2026-10-07. The owner authorized Phase 2 on 2026-10-08; catalog and knowledge ingestion are implemented for review.
 
 ## Requirements accepted from the brief
 
@@ -29,7 +29,7 @@ Status: architecture approved by the owner on 2026-10-07; Phase 1 implemented an
 
 These do not block the architecture review unless noted.
 
-- **Approval gate:** architecture and global-identity exception approved on 2026-10-07. Next review gate is completion of Phase 1.
+- **Approval gate:** architecture and global-identity exception approved on 2026-10-07; Phase 2 authorized on 2026-10-08. Stop for Phase 2 review before the conversation engine and widget in Phase 3.
 - **Brand:** product name, logo and visual identity; use a neutral working label until chosen.
 - **Plan rules:** exact quotas, enabled channels/features, reset period, and retention by plan. Keep development values explicitly provisional; confirm before enforcing commercial plans. PayHere is Growth-enabled as requested, with Business inheritance proposed.
 - **AI:** approved LLM and embedding providers/models, budget, expected dimensions, data processing requirements. No paid API calls until authorized.
@@ -58,3 +58,12 @@ These do not block the architecture review unless noted.
 - Future models are added in their owning phases; the full proposed commerce/knowledge schema is not prematurely migrated in Phase 1.
 - PostgreSQL 17 with pgvector is available locally for verification. Compose and CI use PostgreSQL 16 with pgvector; Docker execution is unavailable on this machine.
 - Production web/API must use same-site HTTPS domains for SameSite session cookies. No external deployment or paid service has been activated.
+
+## Phase 2 implementation notes
+
+- Owner-managed multilingual products, variants, integer LKR prices, stock, attributes and atomic CSV import are now available. CSV updates merge supplied SKUs and preserve omitted variants; full product editing replaces the variant list.
+- Crawled pages enter review as drafts. Approval snapshots content and creates a durable embedding task in the same transaction. Re-crawls retain the approved snapshot and existing index until a replacement is approved and indexed.
+- BullMQ workers use database-owned task IDs, bounded retries and stable job IDs. Tenant routing is resolved from the persisted task, never trusted from queue payloads. Every new business table uses forced RLS and composite tenant foreign keys.
+- Public HTML crawling honors robots.txt, pins vetted public DNS addresses, rechecks redirects, and caps pages, depth, bytes and time. It does not render JavaScript or extract PDFs.
+- The no-cost development embedding provider uses deterministic 64-dimensional token hashing. It verifies the indexing/retrieval plumbing; it does not establish production semantic or multilingual search quality. A real provider/model and any dimension migration/reindex still require the owner's decision.
+- Redis is unavailable on this machine. Direct processor integration checks passed using real PostgreSQL; the real Redis/BullMQ dispatch/worker test is enabled in CI but skipped locally. Nothing has been deployed.

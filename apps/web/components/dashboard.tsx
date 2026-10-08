@@ -24,12 +24,14 @@ import {
 import type { Viewer, Workspace } from "@saha/shared";
 import { plans } from "@saha/shared";
 import { api, ApiError } from "../lib/api";
+import CatalogPanel from "./catalog-panel";
+import KnowledgePanel from "./knowledge-panel";
 const nav = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Inbox", icon: MessageSquare, phase: 5 },
   { name: "Orders", icon: ShoppingBag, phase: 5 },
-  { name: "Catalog", icon: Package, phase: 2 },
-  { name: "Knowledge", icon: BookOpen, phase: 2 },
+  { name: "Catalog", icon: Package },
+  { name: "Knowledge", icon: BookOpen },
   { name: "Channels", icon: Radio, phase: 4 },
 ];
 type Member = {
@@ -254,7 +256,7 @@ export default function Dashboard() {
               Let’s build what comes next.
             </p>
             <span>
-              EARLY ACCESS <i>01 / 06</i>
+              EARLY ACCESS <i>02 / 06</i>
             </span>
           </div>
           <button className="help-button" onClick={() => setPage("Help")}>
@@ -456,7 +458,7 @@ export default function Dashboard() {
                       <strong>Make it your business</strong>
                       <small>Add your website and product knowledge.</small>
                     </div>
-                    <span className="pill muted">Up next</span>
+                    <span className="pill">Get started</span>
                   </button>
                 </div>
                 <div className="card next-card">
@@ -466,17 +468,16 @@ export default function Dashboard() {
                     <span>✦</span>
                   </div>
                   <h3>
-                    Your knowledge.
-                    <br />
-                    Your bot’s superpower.
+                    Your next hello.
+                    <br />A little more connected.
                   </h3>
                   <p>
-                    Next, we’ll turn your website and catalog into answers your
-                    customers can count on.
+                    Your catalog and knowledge are ready. Next comes the
+                    conversation engine and your website chat widget.
                   </p>
                   <button
                     className="text-button"
-                    onClick={() => setPage("Knowledge")}
+                    onClick={() => setPage("Bot settings")}
                   >
                     Explore what’s next <ArrowRight size={15} />
                   </button>
@@ -484,11 +485,25 @@ export default function Dashboard() {
               </section>
               <div className="workspace-footer">
                 <span>
-                  <span className="status-dot" /> Workspace foundation ready
+                  <span className="status-dot" /> Catalog & knowledge ready
                 </span>
                 <span>Made for the way you do business.</span>
               </div>
             </>
+          )}
+          {page === "Catalog" && (
+            <CatalogPanel
+              key={workspace.id}
+              tenantId={workspace.id}
+              owner={owner}
+            />
+          )}
+          {page === "Knowledge" && (
+            <KnowledgePanel
+              key={workspace.id}
+              tenantId={workspace.id}
+              owner={owner}
+            />
           )}
           {page === "Team" && owner && (
             <section className="card settings-card">
@@ -670,9 +685,9 @@ export default function Dashboard() {
                 recipients must sign in with the matching email address.
               </p>
               <p>
-                Catalog and knowledge come next, followed by the conversation
-                engine, messaging channels, orders and payments, then metering.
-                Each phase has a review checkpoint.
+                Catalog and knowledge are available now. Next comes the
+                conversation engine, messaging channels, orders and payments,
+                then metering. Each phase has a review checkpoint.
               </p>
             </section>
           )}

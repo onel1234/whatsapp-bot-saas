@@ -90,7 +90,7 @@ export default function Home() {
       </section>
       <footer className="landing-footer">
         saha / Built for the conversations that grow your business.
-        <span>Early access · Phase 1</span>
+        <span>Early access · Phase 2</span>
       </footer>
     </main>
   );

@@ -1,6 +1,6 @@
 # Saha · multilingual customer workspace
 
-Working product name. Phase 1 implements the foundation of the approved [architecture](ARCHITECTURE.md): a pnpm monorepo, Next.js App Router dashboard, NestJS API, Prisma/PostgreSQL tenant isolation, authentication, team roles, configurable plans, Docker services and CI.
+Working product name. Phases 1–2 implement the approved [architecture](ARCHITECTURE.md): authentication and tenant isolation, multilingual product catalogs, CSV imports, website knowledge review, Redis/BullMQ workers and pgvector retrieval.
 
 ## Run locally
 
@@ -26,11 +26,13 @@ pnpm db:migrate
 pnpm dev
 ```
 
+In a second terminal run `pnpm worker` to dispatch durable tasks and process crawling/embedding queues. Redis must be running at `REDIS_URL`; without it, accepted tasks remain queued in PostgreSQL. For worker development with reload, use `pnpm --filter @saha/api worker:dev`.
+
 Open [localhost:3000](http://localhost:3000). Create an account with a password of at least 12 characters. Signup creates your first workspace and owner membership. There are no seeded passwords or production demo accounts.
 
 The API runs at [localhost:4000](http://localhost:4000/health). Liveness is `/health`; database readiness is `/ready`. Local Postgres and Redis bind to loopback only. Compose creates a restricted `saha_app` login; `DIRECT_URL` is for privileged migrations and `DATABASE_URL` must use the restricted role.
 
-For an existing PostgreSQL installation, create a separate UTF-8 `saha` database, run `infra/init-db.sql` as an administrator, and point both database URLs at it. Do not run the initialization SQL against an unrelated database. The SQL enables pgvector. Redis is provisioned for queues starting in Phase 2; Phase 1 does not dispatch background jobs.
+For an existing PostgreSQL installation, create a separate UTF-8 `saha` database, run `infra/init-db.sql` as an administrator, and point both database URLs at it. Do not run the initialization SQL against an unrelated database. The SQL enables pgvector. Phase 2 requires Redis for background processing.
 
 ## What to review
 
@@ -39,7 +41,18 @@ For an existing PostgreSQL installation, create a separate UTF-8 `saha` database
 - As owner, change the workspace name, inspect provisional plans, and create a team invitation.
 - Share the private invitation link manually. The recipient signs in with its matching email and accepts; the link expires in 48 hours and works once. Existing memberships cannot be promoted by accepting another invitation.
 - Agents can enter their workspace but cannot edit settings, view team/plan management, or issue invitations. API authorization enforces this independently of the UI.
-- Catalog, knowledge, conversations, channels, commerce and metering show their upcoming build phase. They are not simulated live services.
+- As owner, create/edit products with English, Sinhala and Tamil names, variants, stock, attributes and exact LKR prices. Search the catalog and preview a CSV before importing.
+- Add a public website under Knowledge, wait for crawling, edit the resulting drafts and approve reviewed content. Approving schedules indexing; only approved, successfully indexed revisions appear in the search preview. Manual knowledge entries use the same review flow.
+- Re-crawl a source: changed text becomes a draft while its previously approved version remains available. Duplicate active crawl requests reuse the existing run.
+- Conversations, channels, commerce and metering remain at their upcoming build phases.
+
+## Catalog imports and knowledge limits
+
+Download the sample CSV from the Catalog import panel. Required headers: `product_sku,variant_sku,name_en,price_lkr,stock`. Optional headers: `name_si,name_ta,description,attributes_json,image_url,active`. Quote JSON/commas using normal CSV escaping. A product's repeated rows must share its metadata. SKU matching is case-insensitive (stored uppercase); prices accept decimal strings with at most two cents digits, never float rounding. Imports allow 500 rows and 500,000 characters and commit atomically. Supplied variants merge by SKU; omitted existing variants remain. Editing a product directly replaces its variant list.
+
+Crawling is limited to the same hostname, up to 50 pages and depth 3. It honors robots.txt, uses bounded requests, blocks private/reserved destinations and DNS rebinding, and checks redirects. Only static HTML/text is supported; JavaScript-rendered content and PDFs are not extracted. Content enters the knowledge library as drafts, never automatically approved.
+
+The default **development embedding provider** is deterministic token hashing with 64 dimensions. It tests indexing, isolation and retrieval mechanics without paid API calls. It is not a production semantic model or proof of multilingual answer quality. Choose an approved provider/model before production; changing dimensions requires a database migration and reindex.
 
 ## Google sign-in
 
@@ -58,22 +71,22 @@ pnpm test:integration
 pnpm build
 ```
 
-Integration tests require a migrated test database and deliberately fail if the connecting role is a superuser or bypasses RLS. Use a disposable database: tests create distinct users/workspaces and retain their records for debugging. They cover cross-tenant API access, RLS reads/writes and raw SQL, context leakage, CSRF, invitation recipient binding/replay, agent permissions, password login and logout. CI starts isolated PostgreSQL/pgvector and Redis services and runs the same checks.
+Integration tests require a migrated test database and deliberately fail if the connecting role is a superuser or bypasses RLS. Use a disposable database: tests create distinct users/workspaces and retain records for debugging. They cover auth, tenant isolation, catalog rollback, crawl/review/index workflows and cross-tenant vector retrieval. Set `TEST_REDIS_URL` to a disposable Redis instance to enable the BullMQ dispatch/worker test; otherwise that test is explicitly skipped. CI starts PostgreSQL/pgvector and Redis and enables it.
 
 Authentication uses salted scrypt passwords and opaque HttpOnly SameSite cookies. Session tokens are hashed at rest. All mutation requests require the exact configured `Origin`; this includes command-line API clients. No API response contains password hashes or raw session tokens. General and authentication rate limits are process-local in Phase 1; shared Redis limits are required for multiple API replicas in Phase 6.
 
 ## Railway deployment configuration
 
-Deployment files are prepared but nothing is published. Use the repository root as the build context for separate web/API services and choose `infra/railway-web.toml` or `infra/railway-api.toml` respectively. Provision PostgreSQL with pgvector and Redis separately. Before the API's migration command, provision the `saha_app` role with a strong password and no superuser/BYPASSRLS privileges. Adapt `infra/init-db.sql` with your production database name/password; its committed values are local-only.
+Deployment files are prepared but nothing is published. Use the repository root as build context for separate web/API/worker services with `infra/railway-web.toml`, `infra/railway-api.toml` and `infra/railway-worker.toml`. The worker shares the API image and database/Redis configuration. Provision PostgreSQL with pgvector and Redis separately. Before the API's migration command, provision the `saha_app` role with a strong password and no superuser/BYPASSRLS privileges. Adapt `infra/init-db.sql` with your production database name/password; its committed values are local-only.
 
 Set the API's `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`, `WEB_ORIGIN`, and optional Google variables. Set web's `NEXT_PUBLIC_API_URL` at build time. Use HTTPS and same-site sibling domains (for example `app.example.lk` and `api.example.lk`) for cookie authentication. Configure Google's exact HTTPS callback. Railway supplies `PORT`; Next.js and the API honor it. Default unrelated service domains are not suitable for this SameSite cookie setup.
 
-The migration role owns a narrowly scoped SECURITY DEFINER invitation lookup; the runtime role cannot execute arbitrary privileged functions. Migrations assume a privileged PostgreSQL administrator able to bypass forced RLS for this lookup. If your host supplies a different privilege model, provision a dedicated function-owner role and validate invitation tests there before use.
+The migration role owns narrowly scoped SECURITY DEFINER invitation and background-task routing lookups; the runtime role cannot execute arbitrary privileged functions. Migrations assume a PostgreSQL administrator able to bypass forced RLS for these lookups. If your host supplies a different privilege model, provision a dedicated function-owner role and validate isolation tests there before use.
 
 ## Phase boundary and known limitations
 
-This is a reviewable Phase 1, not a launched chatbot. Plan limits are provisional configuration; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service is called.
+This is a reviewable Phase 2, not a launched chatbot. Plan limits are provisional; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service is called.
 
-See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review after this phase before implementing the catalog, crawler and embeddings in Phase 2.
+See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review here before implementing the conversation engine and website widget in Phase 3.
 
 See [VERIFICATION.md](VERIFICATION.md) for the checks completed in this environment and the integrations that remain unverified.

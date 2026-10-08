@@ -1,0 +1,3 @@
+product_sku,variant_sku,name_en,name_si,name_ta,description,price_lkr,stock,attributes_json,image_url,active
+TEA-001,TEA-100G,Ceylon Black Tea,ලංකා කළු තේ,இலங்கை கருப்பு தேநீர்,Loose leaf black tea,1250.00,25,"{""size"":""100g""}",,true
+TEA-001,TEA-250G,Ceylon Black Tea,ලංකා කළු තේ,இலங்கை கருப்பு தேநீர்,Loose leaf black tea,2850.00,15,"{""size"":""250g""}",,true
