@@ -21,6 +21,7 @@ import { HealthController } from "./health.controller";
 import { CatalogModule } from "./catalog/catalog.module";
 import { KnowledgeModule } from "./knowledge/knowledge.module";
 import { ConversationModule } from "./conversations/module";
+import { ChannelModule } from "./channels/module";
 @Module({
   imports: [
     DatabaseModule,
@@ -30,6 +31,7 @@ import { ConversationModule } from "./conversations/module";
     CatalogModule,
     KnowledgeModule,
     ConversationModule,
+    ChannelModule,
   ],
   controllers: [HealthController],
 })
@@ -67,6 +69,7 @@ export async function createApp() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ["error", "warn"],
     bodyParser: false,
+    rawBody: true,
   });
   app.useBodyParser("json", { limit: "1mb" });
   app.use(helmet());
@@ -76,6 +79,7 @@ export async function createApp() {
     res.setHeader("Cache-Control", "no-store");
     if (
       !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
+      !(req.method === "POST" && req.path === "/webhooks/meta") &&
       req.headers.origin !== process.env.WEB_ORIGIN
     ) {
       res.status(403).json({ message: "Untrusted request origin." });

@@ -17,6 +17,6 @@ import { WidgetAdapter } from "../channels/adapter";
     WidgetAdapter,
   ],
   controllers: [BotController, WidgetController],
-  exports: [ConversationEngine],
+  exports: [ConversationEngine, ConversationService],
 })
 export class ConversationModule {}

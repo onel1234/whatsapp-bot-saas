@@ -13,8 +13,11 @@ import { TaskDispatcher } from "./dispatcher";
 import { ConversationModule } from "../conversations/module";
 import { ConversationEngine } from "../conversations/engine";
 import { startConversationQueue } from "../conversations/queue";
+import { ChannelModule } from "../channels/module";
+import { OutboundProcessor } from "../channels/outbound";
+import { startOutboundQueue } from "../channels/queue";
 @Module({
-  imports: [DatabaseModule, ConversationModule],
+  imports: [DatabaseModule, ConversationModule, ChannelModule],
   providers: [
     DevelopmentEmbeddingProvider,
     SafeFetcher,
@@ -69,6 +72,11 @@ async function main() {
         { connection, concurrency: 2, lockDuration: 60000 },
       ),
   );
+  const outbound = startOutboundQueue(
+    db,
+    app.get(OutboundProcessor),
+    connection,
+  );
   let stopping = false;
   const dispatcher = new TaskDispatcher(db, queues);
   for (const queue of Object.values(queues)) queue.on("error", () => {});
@@ -88,6 +96,7 @@ async function main() {
     stopping = true;
     clearInterval(interval);
     await inbound.close();
+    await outbound.close();
     await Promise.all(workers.map((worker) => worker.close()));
     await Promise.all(Object.values(queues).map((queue) => queue.close()));
     await app.close();

@@ -9,8 +9,8 @@
     "worker": "tsx src/queues/worker.ts",
     "worker:dev": "tsx watch src/queues/worker.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run test/unit.test.ts test/phase2.unit.test.ts test/phase3.unit.test.ts",
-    "test:integration": "vitest run test/integration.test.ts test/phase2.integration.test.ts test/phase2.queue.test.ts test/phase3.integration.test.ts",
+    "test": "vitest run test/unit.test.ts test/phase2.unit.test.ts test/phase3.unit.test.ts test/phase4.unit.test.ts",
+    "test:integration": "vitest run test/integration.test.ts test/phase2.integration.test.ts test/phase2.queue.test.ts test/phase3.integration.test.ts test/phase4.integration.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy"
   },

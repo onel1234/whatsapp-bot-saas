@@ -121,6 +121,25 @@ export class ConversationEngine {
       const conversation = await tx.conversation.findUniqueOrThrow({
         where: { tenantId_id: { tenantId, id: turn.conversationId } },
       });
+      const predecessor = await tx.conversationTurn.findFirst({
+        where: {
+          tenantId,
+          conversationId: conversation.id,
+          status: "PENDING",
+          OR: [
+            { createdAt: { lt: turn.createdAt } },
+            { createdAt: turn.createdAt, id: { lt: turn.id } },
+          ],
+        },
+      });
+      if (predecessor) throw new Error("INBOUND_ORDER_WAIT");
+      if (conversation.channel !== "WIDGET" && conversation.mode === "HUMAN") {
+        await tx.conversationTurn.update({
+          where: { tenantId_id: { tenantId, id: turn.id } },
+          data: { status: "DONE", attempts: { increment: 1 } },
+        });
+        return;
+      }
       const config = await tx.botConfig.findUniqueOrThrow({
         where: { tenantId },
       });
@@ -130,6 +149,15 @@ export class ConversationEngine {
         conversation.language as Language,
       );
       const language = detection.language;
+      const incoming = await tx.chatMessage.findUnique({
+        where: {
+          tenantId_conversationId_clientMessageId: {
+            tenantId,
+            conversationId: conversation.id,
+            clientMessageId: turn.clientMessageId,
+          },
+        },
+      });
       await tx.chatMessage.updateMany({
         where: {
           tenantId,
@@ -137,7 +165,14 @@ export class ConversationEngine {
           clientMessageId: turn.clientMessageId,
           sender: "CUSTOMER",
         },
-        data: { language, metadata: { channel: "WIDGET", detection } },
+        data: {
+          language,
+          metadata: {
+            ...((incoming?.metadata as Prisma.JsonObject) ?? {}),
+            channel: conversation.channel,
+            detection,
+          },
+        },
       });
       const copy = texts[language];
       let body = "",
@@ -147,7 +182,14 @@ export class ConversationEngine {
       let usage: LlmResult | undefined;
       const recent = (
         await tx.chatMessage.findMany({
-          where: { tenantId, conversationId: conversation.id },
+          where: {
+            tenantId,
+            conversationId: conversation.id,
+            OR: [
+              { sender: "BOT" },
+              { sender: "CUSTOMER", createdAt: { lte: turn.createdAt } },
+            ],
+          },
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 10,
         })
@@ -276,7 +318,7 @@ export class ConversationEngine {
           update: {},
         });
       }
-      await tx.chatMessage.create({
+      const reply = await tx.chatMessage.create({
         data: {
           tenantId,
           conversationId: conversation.id,
@@ -287,7 +329,8 @@ export class ConversationEngine {
           metadata: {
             cards,
             sources,
-            channel: "WIDGET",
+            channel: conversation.channel,
+            handoffReason: handoffReason ?? null,
             development: true,
             detection,
             toolModel: usage?.model ?? "server-template",
@@ -300,6 +343,14 @@ export class ConversationEngine {
           },
         },
       });
+      if (conversation.channelConnectionId)
+        await tx.outboundDelivery.create({
+          data: {
+            tenantId,
+            messageId: reply.id,
+            channelConnectionId: conversation.channelConnectionId,
+          },
+        });
       await tx.conversation.update({
         where: { tenantId_id: { tenantId, id: conversation.id } },
         data: { language },

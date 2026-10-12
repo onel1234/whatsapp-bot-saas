@@ -62,6 +62,9 @@ model Tenant {
   messages ChatMessage[]
   turns ConversationTurn[]
   notifications Notification[]
+  connections ChannelConnection[]
+  webhookEvents WebhookEvent[]
+  deliveries OutboundDelivery[]
 }
 
 model BotConfig {
@@ -83,11 +86,18 @@ model Conversation {
   mode String @default("BOT")
   language String @default("en")
   createdAt DateTime @default(now())
+  channel String @default("WIDGET")
+  channelConnectionId String? @db.Uuid
+  externalCustomerHash String?
+  encryptedCustomerId String?
+  lastCustomerMessageAt DateTime?
+  connection ChannelConnection? @relation(fields: [tenantId, channelConnectionId], references: [tenantId, id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   messages ChatMessage[]
   turns ConversationTurn[]
   notifications Notification[]
   @@unique([tenantId, id])
+  @@unique([tenantId, channelConnectionId, externalCustomerHash])
 }
 model ChatMessage {
   id String @id @default(uuid()) @db.Uuid
@@ -103,10 +113,67 @@ model ChatMessage {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   conversation Conversation @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Cascade)
   turn ConversationTurn? @relation("Reply", fields: [tenantId, turnId], references: [tenantId, id], onDelete: Cascade)
+  delivery OutboundDelivery?
   @@unique([tenantId, turnId])
   @@unique([tenantId, id])
   @@unique([tenantId, conversationId, clientMessageId])
   @@index([tenantId, conversationId, createdAt])
+}
+
+model ChannelConnection {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  channel String
+  providerAccountId String
+  label String
+  enabled Boolean @default(false)
+  instagramLogin String @default("INSTAGRAM")
+  encryptedCredentials String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  events WebhookEvent[]
+  deliveries OutboundDelivery[]
+  @@unique([tenantId, id])
+  @@unique([channel, providerAccountId])
+}
+model WebhookEvent {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  channelConnectionId String @db.Uuid
+  dedupeKey String
+  encryptedPayload String
+  providerMessageId String
+  deliveryStatus String?
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  connection ChannelConnection @relation(fields: [tenantId, channelConnectionId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, channelConnectionId, dedupeKey])
+  @@index([tenantId, channelConnectionId, providerMessageId])
+}
+model OutboundDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  messageId String @unique @db.Uuid
+  channelConnectionId String @db.Uuid
+  state String @default("PENDING")
+  attempts Int @default(0)
+  providerMessageId String?
+  sentAt DateTime?
+  errorCode String?
+  availableAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  message ChatMessage @relation(fields: [tenantId, messageId], references: [tenantId, id], onDelete: Cascade)
+  connection ChannelConnection @relation(fields: [tenantId, channelConnectionId], references: [tenantId, id], onDelete: Cascade)
+  @@unique([tenantId, id])
+  @@unique([tenantId, messageId])
+  @@unique([tenantId, channelConnectionId, providerMessageId])
+  @@index([state, availableAt])
 }
 model ConversationTurn {
   id String @id @default(uuid()) @db.Uuid
