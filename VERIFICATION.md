@@ -1,6 +1,17 @@
-# Phases 1–3 verification
+# Phases 1–4 verification
 
-Updated: 2026-10-08 (Asia/Colombo).
+Updated: 2026-10-12 (Asia/Colombo).
+
+## Phase 4 checks
+
+- Generated and validated Prisma; applied all four migrations to a fresh UTF-8 `saha_phase4_test` PostgreSQL 17 database. The runtime role is restricted and all new business tables use forced RLS and composite tenant foreign keys.
+- 80 unit tests passed, including 17 new Meta cases for raw-byte signatures, encryption/context binding/key rotation, multi-account normalization, unsupported media, echo suppression, malformed events, reply-window boundaries, all three send contracts, exact catalog rendering, uncertain outcomes, rate-limit rejection and delivery progress.
+- 34 database integration tests passed across the four phases. Eleven new Phase 4 scenarios cover owner/agent and raw-SQL isolation, administrator-approved routing, cross-tenant foreign keys, concurrent event replay, encrypted tenant-only receipt splitting, failed-storage rollback/recovery, Messenger/Instagram identity routing, scoped Messenger read watermarks, early delivery receipts, uncertain sends, ordered turns/outbound replies, future-message memory exclusion, human-mode suppression, bounded explicit retries, worker interruption, current reply windows, connection pause and the send switch. Provider sends in these checks use fixtures; no Meta request is issued.
+- Three Redis-dependent tests are enabled in CI and skipped locally, including the new inbound/outbound BullMQ recovery test. Local Redis and Docker remain unavailable. Persisted receipt/outbox recovery was exercised through direct processors; this does not establish Redis/BullMQ operation or hosted CI results.
+- ESLint, shared/API/web type checks, API compilation, Prisma validation and optimized Next.js production build passed.
+- Browser review used a synthetic local workspace and dummy account/token. Connection creation, enable/pause and token replacement persisted through the UI; token fields cleared after saving. Fixed saved sign-in credentials autofilling the channel form by using new-password fields and disabling account-ID autofill. Checked desktop and 390px mobile layout, including stacked connection controls and delivery history; no document-level horizontal overflow was visible. The fixture connection was returned to paused. Temporary viewport overrides were cleared after review.
+- No real access token, app secret or account permission was supplied or used. The owner's WhatsApp test phone-number ID is recorded in `META_SETUP.md`; it has not been connected or activated. Direct Meta developer-document fetches were rate-limited; send contracts were checked against Meta's official Postman collections. Live webhook registration, app permissions/review and successful delivery still need owner configuration and testing.
+- WhatsApp outside-window replies are blocked and escalated. No approved template is assumed or automatically sent. Production onboarding, template management, private media handling, full key-rotation/retention operations and provider outcome reconciliation remain documented limitations. Human inbox replies remain Phase 5.
 
 ## Phase 3 checks
 
@@ -40,7 +51,7 @@ Completed on 2026-10-07:
 
 Docker is not installed here, so Compose containers and the GitHub Actions runner have not been executed locally. PostgreSQL 17 and pgvector 0.8.1 are available on this machine; Compose/CI target PostgreSQL 16 with pgvector. No external service credentials were used.
 
-For this review session, the app uses web port 3001, API port 4001, and a dedicated PostgreSQL cluster on loopback port 55432 under ignored `.local/postgres`. An unrelated project already occupied port 3000. Example environment files retain the standard ports documented in README.
+The Phase 4 review uses web port 3001, API port 4001, and a disposable test database in the project's PostgreSQL cluster under ignored `.local/postgres`. Windows rejected binding to the previous loopback port 55432; the cluster runs on 55433. Private development connection URLs and project-local cluster configuration now use 55433. Fresh-database checks did not reset the previous development database. Committed example environment files retain the standard ports documented in README.
 
 The machine's bundled pnpm is a different major version. Installation and verification used the pinned pnpm 10.11.0; local direct workspace commands avoided the bundled wrapper. Use the pinned version from `packageManager` for reproducible installs.
 
@@ -49,7 +60,8 @@ The machine's bundled pnpm is a different major version. Installation and verifi
 - Live Google OAuth without owner-supplied credentials.
 - Docker image execution, hosted CI, or Railway deployment.
 - Local Redis/BullMQ execution, production semantic embeddings or live multilingual answer quality.
-- Features in Phases 4–6: Meta channels, live inbox/human replies, orders/payments, and usage enforcement.
+- Live Meta account activation/webhook delivery; local adapters and mocked provider transports are verified, not live permissions or delivery.
+- Features in Phases 5–6: live inbox/human replies, orders/payments, and usage enforcement.
 
 ## References used during implementation
 

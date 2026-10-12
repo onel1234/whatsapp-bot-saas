@@ -1,6 +1,6 @@
 # Saha · multilingual customer workspace
 
-Working product name. Phases 1–3 implement the approved [architecture](ARCHITECTURE.md): authentication and tenant isolation, catalog and knowledge ingestion, a constrained conversation engine, bot settings and embeddable website chat.
+Working product name. Phases 1–4 implement the approved [architecture](ARCHITECTURE.md): authentication and tenant isolation, catalog and knowledge ingestion, a constrained conversation engine, bot settings, website chat and configurable Meta channels.
 
 ## Run locally
 
@@ -44,7 +44,8 @@ For an existing PostgreSQL installation, create a separate UTF-8 `saha` database
 - As owner, create/edit products with English, Sinhala and Tamil names, variants, stock, attributes and exact LKR prices. Search the catalog and preview a CSV before importing.
 - Add a public website under Knowledge, wait for crawling, edit the resulting drafts and approve reviewed content. Approving schedules indexing; only approved, successfully indexed revisions appear in the search preview. Manual knowledge entries use the same review flow.
 - Re-crawl a source: changed text becomes a draft while its previously approved version remains available. Duplicate active crawl requests reuse the existing run.
-- The live inbox, Meta channels, commerce and metering remain at their upcoming build phases.
+- As owner, open Channels to save authorized Meta account connections, pause receiving, replace encrypted access tokens and inspect delivery status. See [META_SETUP.md](META_SETUP.md) for server configuration and test-account setup.
+- The live inbox, commerce and metering remain at their upcoming build phases.
 
 ## Catalog imports and knowledge limits
 
@@ -85,9 +86,9 @@ The migration role owns narrowly scoped SECURITY DEFINER invitation and backgrou
 
 ## Phase boundary and known limitations
 
-This is a reviewable Phase 3, not a launched chatbot. Plan limits are provisional; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service is called.
+This is a reviewable Phase 4, not a launched chatbot. Plan limits are provisional; there is no upgrade checkout or quota enforcement yet. Email verification/password recovery, session management UI, member removal/ownership transfer, shared rate limiting, production retention and operational hardening remain before public launch. Invitations are shared manually; no email provider is assumed. Google live sign-in and Railway deployment need your credentials/configuration. No paid service has been called; Meta sending stays paused until explicitly configured and enabled.
 
-See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review here before implementing Meta adapters in Phase 4.
+See [DECISIONS.md](DECISIONS.md) for approved decisions and remaining questions. Stop for review here before commerce and inbox in Phase 5.
 
 See [VERIFICATION.md](VERIFICATION.md) for the checks completed in this environment and the integrations that remain unverified.
 

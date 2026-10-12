@@ -1,6 +1,6 @@
 # Multilingual sales and support SaaS — proposed architecture
 
-Status: **Architecture approved on 2026-10-07. Phase 3 authorized on 2026-10-08 and implemented for review.**
+Status: **Architecture approved on 2026-10-07. Phases 2–3 authorized on 2026-10-08. Phase 4 authorized on 2026-10-12 and implemented for review; live Meta account testing pending.**
 
 This proposal preserves the requested pnpm, Next.js App Router, NestJS, Prisma/PostgreSQL/pgvector, Redis/BullMQ, Docker Compose, and Railway stack. Product name remains undecided.
 

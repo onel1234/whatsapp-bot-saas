@@ -27,13 +27,14 @@ import { api, ApiError } from "../lib/api";
 import CatalogPanel from "./catalog-panel";
 import KnowledgePanel from "./knowledge-panel";
 import BotPanel from "./bot-panel";
+import ChannelsPanel from "./channels-panel";
 const nav = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Inbox", icon: MessageSquare, phase: 5 },
   { name: "Orders", icon: ShoppingBag, phase: 5 },
   { name: "Catalog", icon: Package },
   { name: "Knowledge", icon: BookOpen },
-  { name: "Channels", icon: Radio, phase: 4 },
+  { name: "Channels", icon: Radio },
 ];
 type Member = {
   id: string;
@@ -256,7 +257,7 @@ export default function Dashboard() {
               Let’s build what comes next.
             </p>
             <span>
-              EARLY ACCESS <i>03 / 06</i>
+              EARLY ACCESS <i>04 / 06</i>
             </span>
           </div>
           <button className="help-button" onClick={() => setPage("Help")}>
@@ -507,6 +508,13 @@ export default function Dashboard() {
           )}
           {page === "Bot settings" && (
             <BotPanel
+              key={workspace.id}
+              tenantId={workspace.id}
+              owner={owner}
+            />
+          )}
+          {page === "Channels" && (
+            <ChannelsPanel
               key={workspace.id}
               tenantId={workspace.id}
               owner={owner}

@@ -1,6 +1,6 @@
 # Architecture decisions and open questions
 
-Status: architecture approved on 2026-10-07. The owner authorized Phases 2 and 3 on 2026-10-08. Phase 3 engine and widget are implemented and verified for review.
+Status: architecture approved on 2026-10-07. The owner authorized Phases 2 and 3 on 2026-10-08 and Phase 4 on 2026-10-12. Phase 4 Meta adapters are implemented for review; live account verification is pending.
 
 ## Requirements accepted from the brief
 
@@ -29,12 +29,12 @@ Status: architecture approved on 2026-10-07. The owner authorized Phases 2 and 3
 
 These do not block the architecture review unless noted.
 
-- **Approval gate:** architecture and global-identity exception approved on 2026-10-07; Phase 2 authorized on 2026-10-08. Phase 3 is authorized; stop for review before Meta adapters in Phase 4.
+- **Approval gate:** architecture and global-identity exception approved on 2026-10-07; Phases 2–3 authorized on 2026-10-08; Phase 4 authorized on 2026-10-12. Stop for review before commerce/inbox in Phase 5.
 - **Brand:** product name, logo and visual identity; use a neutral working label until chosen.
 - **Plan rules:** exact quotas, enabled channels/features, reset period, and retention by plan. Keep development values explicitly provisional; confirm before enforcing commercial plans. PayHere is Growth-enabled as requested, with Business inheritance proposed.
 - **AI:** approved LLM and embedding providers/models, budget, expected dimensions, data processing requirements. No paid API calls until authorized.
 - **Google:** OAuth project/client configuration and deployment callback domains; configurable implementation can be tested locally before credentials exist.
-- **Meta:** account assets, app ownership/review status, permissions, templates and onboarding model; ask in Phase 4.
+- **Meta:** test WhatsApp phone-number ID `1339213065945263` supplied on 2026-10-12; app unpublished. Tokens, app secret, permissions/review, Facebook Page and Instagram IDs remain unsupplied. Phase 4 uses configurable owner-entered connections with administrator-reviewed tenant/account bindings. Embedded onboarding, production assets and approved templates remain open; no live activation is assumed.
 - **Payments:** PayHere merchant configuration, sandbox access, bank-transfer instructions and private attachment storage; ask in Phase 5.
 - **Commerce:** delivery charges/areas, taxes, reservation/cancellation rules, and slip review behavior; require explicit business configuration before live checkout.
 - **Operations:** production hosting authorization, region, backups, encryption key management/rotation, raw-event and customer-data retention, and optional seller notification channels.
